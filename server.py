@@ -38,7 +38,7 @@ class SocksProxy(StreamRequestHandler):
             return
 
         # send welcome message
-        self.connection.sendall(struct.pack("!BB", SOCKS_VERSION, 2))
+        self.connection.sendall(struct.pack("!BB", SOCKS_VERSION, 0))
 
         if not self.verify_credentials():
             return
@@ -133,5 +133,6 @@ class SocksProxy(StreamRequestHandler):
 
 
 if __name__ == '__main__':
-    with ThreadingTCPServer(('127.0.0.1', 9011), SocksProxy) as server:
+    hostIp = socket.gethostbyname(socket.gethostname())
+    with ThreadingTCPServer((hostIp, 9011), SocksProxy) as server:
         server.serve_forever()
