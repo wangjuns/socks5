@@ -38,7 +38,7 @@ class SocksProxy(StreamRequestHandler):
             return
 
         # send welcome message
-        self.connection.sendall(struct.pack("!BB", SOCKS_VERSION, 0))
+        self.connection.sendall(struct.pack("!BB", SOCKS_VERSION, 2))
 
         if not self.verify_credentials():
             return
@@ -46,6 +46,8 @@ class SocksProxy(StreamRequestHandler):
         # request
         version, cmd, _, address_type = struct.unpack("!BBBB", self.connection.recv(4))
         assert version == SOCKS_VERSION
+        
+        logging.info("address type: %s", address_type)
 
         if address_type == 1:  # IPv4
             address = socket.inet_ntoa(self.connection.recv(4))
@@ -91,6 +93,7 @@ class SocksProxy(StreamRequestHandler):
 
     def verify_credentials(self):
         version = ord(self.connection.recv(1))
+        logging.info("credentials version: %s", version)
         assert version == 1
 
         username_len = ord(self.connection.recv(1))
@@ -135,4 +138,5 @@ class SocksProxy(StreamRequestHandler):
 if __name__ == '__main__':
     hostIp = socket.gethostbyname(socket.gethostname())
     with ThreadingTCPServer((hostIp, 9011), SocksProxy) as server:
+        logging.info("start server: %s:9011", hostIp)
         server.serve_forever()

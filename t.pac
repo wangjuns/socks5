@@ -3,7 +3,7 @@ function FindProxyForURL(url, host){
     if (dnsDomainIs(host, "google.com") ||
         dnsDomainIs(host, "www.google.com") ||
         dnsDomainIs(host, "www.baidu.com")) {
-      return "SOCKS " + ip + ":9011";
+      return "SOCKS5 " + "16.163.103.221" + ":9011";
     }
      return "DIRECT";
 }
