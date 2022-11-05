@@ -2,9 +2,13 @@ import logging
 import select
 import socket
 import struct
+import os
+from logging.handlers import RotatingFileHandler
 from socketserver import ThreadingMixIn, TCPServer, StreamRequestHandler
 
-logging.basicConfig(level=logging.DEBUG)
+log_file_format = "[%(levelname)s] - %(asctime)s - %(name)s - : %(message)s"
+log_handler = RotatingFileHandler('logs/ss.log', maxBytes=50 * 1024 * 1024, backupCount=5)
+logging.basicConfig(level=logging.INFO, handlers=[log_handler], format=log_file_format)
 SOCKS_VERSION = 5
 
 
@@ -12,9 +16,14 @@ class ThreadingTCPServer(ThreadingMixIn, TCPServer):
     pass
 
 
+server_port = 9001
+if "SS_PORT" in os.environ.keys():
+    server_port = int(os.environ["SS_PORT"])
+
+
 class SocksProxy(StreamRequestHandler):
-    username = 'username'
-    password = 'password'
+    username = os.environ["USER_NAME"]
+    password = os.environ["PASSWORD"]
 
     def handle(self):
         logging.info('Accepting connection from %s:%s' % self.client_address)
@@ -46,7 +55,7 @@ class SocksProxy(StreamRequestHandler):
         # request
         version, cmd, _, address_type = struct.unpack("!BBBB", self.connection.recv(4))
         assert version == SOCKS_VERSION
-        
+
         logging.info("address type: %s", address_type)
 
         if address_type == 1:  # IPv4
@@ -118,7 +127,6 @@ class SocksProxy(StreamRequestHandler):
         return struct.pack("!BBBBIH", SOCKS_VERSION, error_number, 0, address_type, 0, 0)
 
     def exchange_loop(self, client, remote):
-
         while True:
 
             # wait until client or remote is available for read
@@ -137,6 +145,10 @@ class SocksProxy(StreamRequestHandler):
 
 if __name__ == '__main__':
     hostIp = socket.gethostbyname(socket.gethostname())
-    with ThreadingTCPServer((hostIp, 9011), SocksProxy) as server:
-        logging.info("start server: %s:9011", hostIp)
-        server.serve_forever()
+    with ThreadingTCPServer((hostIp, server_port), SocksProxy) as server:
+        logging.info("Start server: %s:%s", hostIp, server_port)
+
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            logging.info("Server exit with KeyboardInterrupt")
